@@ -4,41 +4,41 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.Error
-import java.util.Objects
-import kotlin.math.sqrt
 
-class ColorScreen : AppCompatActivity() {
-    private var sensorManager : SensorManager? = null
-    private var acceleration = 0f
-    private var currentAcceleration = 0f
-    private var lastAcceleration = 0f
+class RegularScreen : AppCompatActivity() {
     private var mCameraId = ""
     private var mCameraManager : CameraManager? = null
     private var colorContainer : ConstraintLayout? = null
     private var colors : Map<String, Int>? = null
+    private var speed : Float? = 1f
+    private var speedTextView : TextView? = null
+    private var reduce : TextView? = null
+    private var increase : TextView? = null
+    private var colorChangeJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_color_screen)
+        setContentView(R.layout.activity_regular_screen)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        speedTextView = findViewById<TextView>(R.id.currentSpeed)
         colorContainer = findViewById<ConstraintLayout>(R.id.colorContainer)
+        reduce = findViewById(R.id.decrease_button)
+        increase = findViewById(R.id.increase_button)
 
 //      Check the flashLight availability
         checkFlashInstance()
@@ -46,54 +46,44 @@ class ColorScreen : AppCompatActivity() {
 //      Get the colors in res
         colors = getColorsList()
 
-        // Getting the Sensor Manager instance
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        setUiSpeed()
 
-        Objects.requireNonNull(sensorManager)!!
-            .registerListener(sensorListener, sensorManager!!
-                .getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL)
-
-        acceleration = 10f
-        currentAcceleration = SensorManager.GRAVITY_EARTH
-        lastAcceleration = SensorManager.GRAVITY_EARTH
-    }
-
-    private val sensorListener: SensorEventListener = object : SensorEventListener {
-        override fun onSensorChanged(event: SensorEvent) {
-            val x = event.values[0]
-            val y = event.values[1]
-            val z = event.values[2]
-            lastAcceleration = currentAcceleration
-
-            // Getting current accelerations
-            // with the help of fetched x,y,z values
-            currentAcceleration = sqrt((x * x + y * y + z * z).toDouble()).toFloat()
-            val delta: Float = currentAcceleration - lastAcceleration
-            acceleration = acceleration * 0.2f + delta
-
-            print(acceleration)
-
-            // Display a Toast message if
-            // acceleration value is over 12
-            if (acceleration > 8) {
-//                Toast.makeText(applicationContext, "Shake event detected", Toast.LENGTH_SHORT).show()
-                switchTorch(true);
-                changeColor()
-            }
+//      On click listener for reduce speed button
+        reduce?.setOnClickListener() {
+            Toast.makeText(applicationContext, "Reduce", Toast.LENGTH_SHORT).show()
+            reduceSpeed()
         }
-        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
-    }
 
-    override fun onResume() {
-        sensorManager?.registerListener(sensorListener, sensorManager!!.getDefaultSensor(
-            Sensor .TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL
-        )
-        super.onResume()
+//      On click listener for increase speed button
+        increase?.setOnClickListener() {
+            Toast.makeText(applicationContext, "Increase", Toast.LENGTH_SHORT).show()
+            increaseSpeed()
+        }
+
+        startChangeTimer()
     }
 
     override fun onPause() {
-        sensorManager!!.unregisterListener(sensorListener)
         super.onPause()
+        colorChangeJob?.cancel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startChangeTimer()
+    }
+
+    fun startChangeTimer() {
+        colorChangeJob?.cancel()
+
+        // Start a new coroutine to change color at intervals
+        colorChangeJob = GlobalScope.launch(Dispatchers.Main) {
+            while (true) {
+                switchTorch(true)
+                changeColor()
+                delay((speed?.times(1000) ?: 1000).toLong())
+            }
+        }
     }
 
     fun checkFlashInstance() {
@@ -119,7 +109,7 @@ class ColorScreen : AppCompatActivity() {
             if (isOn) {
                 // Launch a coroutine to wait for 500 milliseconds before switching off
                 GlobalScope.launch(Dispatchers.Main) {
-                    delay(200) // Delay for 500 milliseconds
+                    delay((speed?.times(1000)?.minus(200) ?: 200).toLong())
                     mCameraManager?.setTorchMode(mCameraId, false)
                 }
             }
@@ -169,6 +159,27 @@ class ColorScreen : AppCompatActivity() {
             colorsList.random()
         } else {
             null
+        }
+    }
+
+    fun setUiSpeed() {
+//        var setSpeed : Int? = 0
+//        setSpeed = speed!!.toInt()
+        var speedStr : String = "x" + speed
+        speedTextView?.text = speedStr
+    }
+
+    fun reduceSpeed() {
+        if (speed != 0.5f) {
+            speed = speed?.minus(0.5f)
+            setUiSpeed()
+        }
+    }
+
+    fun increaseSpeed() {
+        if (speed != 2.5f) {
+            speed = speed?.plus(0.5f)
+            setUiSpeed()
         }
     }
 

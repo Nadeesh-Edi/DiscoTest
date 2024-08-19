@@ -17,6 +17,9 @@
         android:theme="@style/Theme.DiscoTest"
         tools:targetApi="31">
         <activity
+            android:name=".RegularScreen"
+            android:exported="false" />
+        <activity
             android:name=".ColorScreen"
             android:exported="false" />
         <activity
