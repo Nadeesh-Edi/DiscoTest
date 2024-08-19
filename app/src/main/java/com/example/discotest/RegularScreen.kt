@@ -40,6 +40,9 @@ class RegularScreen : AppCompatActivity() {
         reduce = findViewById(R.id.decrease_button)
         increase = findViewById(R.id.increase_button)
 
+//      Increase brightness to full
+        increaseBrightness()
+
 //      Check the flashLight availability
         checkFlashInstance()
 
@@ -187,5 +190,12 @@ class RegularScreen : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.statusBarColor = color
         }
+    }
+
+    fun increaseBrightness() {
+        val window = window
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = 1.0f
+        window.attributes = layoutParams
     }
 }

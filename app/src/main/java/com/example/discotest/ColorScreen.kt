@@ -40,6 +40,9 @@ class ColorScreen : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         colorContainer = findViewById<ConstraintLayout>(R.id.colorContainer)
 
+//      Increase brightness to full
+        increaseBrightness()
+
 //      Check the flashLight availability
         checkFlashInstance()
 
@@ -176,5 +179,12 @@ class ColorScreen : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.statusBarColor = color
         }
+    }
+
+    fun increaseBrightness() {
+        val window = window
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = 1.0f
+        window.attributes = layoutParams
     }
 }
